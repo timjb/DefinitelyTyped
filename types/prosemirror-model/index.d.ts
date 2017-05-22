@@ -247,9 +247,23 @@ declare module "prosemirror-model" {
     markFromJSON(json: Object): Mark
 
   }
-  export interface DOMOutputSpec {
-
+  interface DOMOutputSpecArray {
+    0: string,
+    1?: DOMOutputSpec | 0 | { [attr: string]: string },
+    2?: DOMOutputSpec | 0,
+    3?: DOMOutputSpec | 0,
+    4?: DOMOutputSpec | 0,
+    5?: DOMOutputSpec | 0,
+    6?: DOMOutputSpec | 0,
+    7?: DOMOutputSpec | 0,
+    8?: DOMOutputSpec | 0,
+    9?: DOMOutputSpec | 0
   }
+  type DOMOutputSpec
+      = string
+      | Node
+      | DOMOutputSpecArray
+
   export class DOMSerializer {
     constructor(nodes: Object, marks: Object)
     nodes: Object;
