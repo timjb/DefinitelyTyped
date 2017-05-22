@@ -1,4 +1,4 @@
-// Type definitions for prosemirror-model 0.18
+// Type definitions for prosemirror-model 0.21
 // Project: https://github.com/ProseMirror/prosemirror-model
 // Definitions by: David Hahn <https://github.com/davidka>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
@@ -7,64 +7,69 @@ type OrderedMap<T> = T;
 
 declare module "prosemirror-model" {
   export class ContentMatch {
-    matchNode(node: ProsemirrorNode): ContentMatch
-    matchType(type: NodeType, attrs?: Object, marks?: Mark[]): ContentMatch
-    matchFragment(fragment: Fragment, from?: number, to?: number): ContentMatch | boolean
+    matchNode(node: ProsemirrorNode): ContentMatch | undefined | null
+    matchType(type: NodeType, attrs?: Object, marks?: Mark[]): ContentMatch | undefined | null
+    matchFragment(fragment: Fragment, from?: number, to?: number): ContentMatch | null | false
     matchToEnd(fragment: Fragment, start?: number, end?: number): boolean
     validEnd(): boolean
-    fillBefore(after: Fragment, toEnd: boolean, startIndex?: number): Fragment
+    fillBefore(after: Fragment, toEnd: boolean, startIndex?: number): Fragment | undefined | null
     allowsMark(markType: MarkType): boolean
-    findWrapping(target: NodeType, targetAttrs?: Object, targetMarks?: Mark[]): { type: NodeType, attrs: Object }[]
-    findWrappingFor(node: ProsemirrorNode): { type: NodeType, attrs: Object }[]
+    findWrapping(target: NodeType, targetAttrs?: Object, targetMarks?: Mark[]): { type: NodeType, attrs: Object }[] | null
+    findWrappingFor(node: ProsemirrorNode): { type: NodeType, attrs: Object }[] | undefined | null
 
   }
   export class Fragment {
+    nodesBetween(from: number, to: number, f: (node: ProsemirrorNode, start: number, parent: ProsemirrorNode, index: number) => boolean | void): void
+    descendants(f: (node: ProsemirrorNode, pos: number, parent: ProsemirrorNode) => boolean | void): void
     append(other: Fragment): Fragment
     cut(from: number, to?: number): Fragment
     replaceChild(index: number, node: ProsemirrorNode): Fragment
     eq(other: Fragment): boolean
-    firstChild?: ProsemirrorNode;
-    lastChild?: ProsemirrorNode;
+    firstChild: ProsemirrorNode | null;
+    lastChild: ProsemirrorNode | null;
     childCount: number;
     child(index: number): ProsemirrorNode
     offsetAt(index: number): number
-    maybeChild(index: number): ProsemirrorNode
+    maybeChild(index: number): ProsemirrorNode | undefined | null
     forEach(f: (node: ProsemirrorNode, offset: number, index: number) => void): void
-    findDiffStart(other: Fragment): number
-    findDiffEnd(other: ProsemirrorNode): { a: number, b: number } | void
+    findDiffStart(other: Fragment): number | undefined | null
+    findDiffEnd(other: ProsemirrorNode): { a: number, b: number } | undefined | null
     toString(): string
-    toJSON(): Object | void
+    toJSON(): Object | null
     static fromJSON(schema: Schema, value?: Object): Fragment
     static fromArray(array: ProsemirrorNode[]): Fragment
     static from(nodes?: Fragment | ProsemirrorNode | ProsemirrorNode[]): Fragment
     static empty: Fragment;
 
   }
-  export interface ParseRule {
-    tag?: string;
-    style?: string;
+  export interface CommonParseRule {
     context?: string;
-    node?: string;
     mark?: string;
     priority?: number;
     ignore?: boolean;
     skip?: boolean;
     attrs?: Object;
-    getAttrs?(p: Node | string): boolean | Object
+    getAttrs?(p: Node | string): false | null | Object;
     contentElement?: string;
     getContent?(p: Node): Fragment
-    preserveWhitespace?: boolean;
-
+    preserveWhitespace?: boolean | "full";
   }
+  export interface TagParseRule extends CommonParseRule {
+    tag: string;
+    node?: string;
+  }
+  export interface StyleParseRule extends CommonParseRule {
+    style: string;
+  }
+  type ParseRule = TagParseRule | StyleParseRule;
   export class DOMParser {
     constructor(schema: Schema, rules: ParseRule[])
     schema: Schema;
     rules: ParseRule[];
-    parse(dom: Node, options?: { preserveWhitespace?: boolean, findPositions?: { node: Node, offset: number }[], from?: number, to?: number, topNode?: ProsemirrorNode, topStart?: number, context?: ResolvedPos }): ProsemirrorNode
+    parse(dom: Node, options?: { preserveWhitespace?: boolean | "full", findPositions?: { node: Node, offset: number }[], from?: number, to?: number, topNode?: ProsemirrorNode, topStart?: number, context?: ResolvedPos }): ProsemirrorNode
     parseSlice(dom: Node, options?: Object): Slice
     static schemaRules(schema: Schema): ParseRule[]
     static fromSchema(schema: Schema): DOMParser
-
   }
   export class Mark {
     type: MarkType;
@@ -89,14 +94,14 @@ declare module "prosemirror-model" {
     nodeSize: number;
     childCount: number;
     child(index: number): ProsemirrorNode
-    maybeChild(index: number): ProsemirrorNode
+    maybeChild(index: number): ProsemirrorNode | undefined | null
     forEach(f: (node: ProsemirrorNode, offset: number, index: number) => void): void
-    nodesBetween(from: number |  void, to: number |  void, f: (node: ProsemirrorNode, pos: number, parent: ProsemirrorNode, index: number) => void): void
-    descendants(f: (node: ProsemirrorNode, pos: number, parent: ProsemirrorNode) => void): void
+    nodesBetween(from: number | undefined | null, to: number | undefined | null, f: (node: ProsemirrorNode, pos: number, parent: ProsemirrorNode, index: number) => void): void
+    descendants(f: (node: ProsemirrorNode, pos: number, parent: ProsemirrorNode) => boolean | void): void
     textContent: string;
     textBetween(from: number, to: number, blockSeparator?: string, leafText?: string): string
-    firstChild?: ProsemirrorNode;
-    lastChild?: ProsemirrorNode;
+    firstChild: ProsemirrorNode | null | undefined;
+    lastChild: ProsemirrorNode | null | undefined;
     eq(other: ProsemirrorNode): boolean
     sameMarkup(other: ProsemirrorNode): boolean
     hasMarkup(type: NodeType, attrs?: Object, marks?: Mark[]): boolean
@@ -105,13 +110,14 @@ declare module "prosemirror-model" {
     cut(from: number, to?: number): ProsemirrorNode
     slice(from: number, to?: number): Slice
     replace(from: number, to: number, slice: Slice): ProsemirrorNode
-    nodeAt(pos: number): ProsemirrorNode
+    nodeAt(pos: number): ProsemirrorNode | null | undefined
     childAfter(pos: number): { node?: ProsemirrorNode, index: number, offset: number }
     childBefore(pos: number): { node?: ProsemirrorNode, index: number, offset: number }
     resolve(pos: number): ResolvedPos
-    rangeHasMark(from: number |  void, to: number |  void, type: MarkType): boolean
+    rangeHasMark(from: number | void, to: number | void, type: MarkType): boolean
     isBlock: boolean;
     isTextblock: boolean;
+    inlineContent: boolean;
     isInline: boolean;
     isText: boolean;
     isLeaf: boolean;
@@ -130,12 +136,13 @@ declare module "prosemirror-model" {
 
   }
   export class Slice {
-    constructor(content: Fragment, openLeft: number, openRight: number)
+    constructor(content: Fragment, openStart: number, openEnd: number)
     content: Fragment;
-    openLeft: number;
-    openRight: number;
+    openStart: number;
+    openEnd: number;
     size: number;
-    toJSON(): Object | void
+    eq(other: Slice): boolean;
+    toJSON(): Object | null
     static fromJSON(schema: Schema, json?: Object): Slice
     static maxOpen(fragment: Fragment): Slice
     static empty: Slice;
@@ -154,13 +161,14 @@ declare module "prosemirror-model" {
     before(depth?: number): number
     after(depth?: number): number
     textOffset: number;
-    nodeAfter?: ProsemirrorNode;
-    nodeBefore?: ProsemirrorNode;
+    nodeAfter: ProsemirrorNode | null | undefined;
+    nodeBefore: ProsemirrorNode | null | undefined;
     marks(after?: boolean): Mark[]
     sharedDepth(pos: number): number
-    blockRange(other?: ResolvedPos, pred?: (p: ProsemirrorNode) => boolean): NodeRange
+    blockRange(other?: ResolvedPos, pred?: (p: ProsemirrorNode) => boolean): NodeRange | null | undefined
     sameParent(other: ResolvedPos): boolean
-
+    max(other: ResolvedPos): ResolvedPos
+    min(other: ResolvedPos): ResolvedPos
   }
   export class NodeRange {
     $from: ResolvedPos;
@@ -181,11 +189,12 @@ declare module "prosemirror-model" {
     isText: boolean;
     isInline: boolean;
     isTextblock: boolean;
+    inlineContent: boolean;
     isLeaf: boolean;
     isAtom: boolean;
     create(attrs?: Object, content?: Fragment | ProsemirrorNode | ProsemirrorNode[], marks?: Mark[]): ProsemirrorNode
     createChecked(attrs?: Object, content?: Fragment | ProsemirrorNode | ProsemirrorNode[], marks?: Mark[]): ProsemirrorNode
-    createAndFill(attrs?: Object, content?: Fragment | ProsemirrorNode | ProsemirrorNode[], marks?: Mark[]): ProsemirrorNode
+    createAndFill(attrs?: Object, content?: Fragment | ProsemirrorNode | ProsemirrorNode[], marks?: Mark[]): ProsemirrorNode | null | undefined
     validContent(content: Fragment, attrs?: Object): boolean
 
   }
@@ -195,13 +204,13 @@ declare module "prosemirror-model" {
     spec: MarkSpec;
     create(attrs?: Object): Mark
     removeFromSet(set: Mark[]): Mark[]
-    isInSet(set: Mark[]): Mark
-    excludes: MarkType;
+    isInSet(set: Mark[]): Mark | null | undefined
+    excludes(other: MarkType): boolean;
 
   }
   export interface SchemaSpec {
-    nodes: Object | OrderedMap<NodeSpec>;
-    marks?: Object | OrderedMap<MarkSpec>;
+    nodes: { [name: string]: NodeSpec } | OrderedMap<NodeSpec>;
+    marks?: { [name: string]: MarkSpec } | OrderedMap<MarkSpec>;
     topNode?: string;
 
   }
@@ -210,18 +219,19 @@ declare module "prosemirror-model" {
     group?: string;
     inline?: boolean;
     atom?: boolean;
-    attrs?: Object;
+    attrs?: { [attr: string]: AttributeSpec };
     selectable?: boolean;
     draggable?: boolean;
     code?: boolean;
     defining?: boolean;
+    isolating?: boolean;
     toDOM?(p: ProsemirrorNode): DOMOutputSpec
     parseDOM?: ParseRule[];
 
   }
   export interface MarkSpec {
-    attrs?: Object;
-    inclusiveRight?: boolean;
+    attrs?: { [attr: string]: AttributeSpec };
+    inclusive?: boolean;
     excludes?: string;
     group?: string;
     toDOM?(mark: Mark): DOMOutputSpec
@@ -236,8 +246,8 @@ declare module "prosemirror-model" {
   export class Schema {
     constructor(spec: SchemaSpec)
     spec: SchemaSpec;
-    nodes: Object;
-    marks: Object;
+    nodes: { [name: string]: NodeType };
+    marks: { [name: string]: MarkType };
     cached: Object;
     topNodeType: NodeType;
     node(type: string | NodeType, attrs?: Object, content?: Fragment | ProsemirrorNode | ProsemirrorNode[], marks?: Mark[]): ProsemirrorNode
@@ -249,7 +259,7 @@ declare module "prosemirror-model" {
   }
   interface DOMOutputSpecArray {
     0: string,
-    1?: DOMOutputSpec | 0 | { [attr: string]: string },
+    1?: DOMOutputSpec | 0 | Object,
     2?: DOMOutputSpec | 0,
     3?: DOMOutputSpec | 0,
     4?: DOMOutputSpec | 0,
@@ -266,14 +276,14 @@ declare module "prosemirror-model" {
 
   export class DOMSerializer {
     constructor(nodes: Object, marks: Object)
-    nodes: Object;
-    marks: Object;
+    nodes: { [name: string]: (node: ProsemirrorNode) => DOMOutputSpec };
+    marks: { [name: string]: (mark: Mark) => DOMOutputSpec };
     serializeFragment(fragment: Fragment, options?: Object): DocumentFragment
     serializeNode(node: ProsemirrorNode, options?: Object): Node
     static renderSpec(doc: Document, structure: DOMOutputSpec): { dom: Node, contentDOM?: Node }
     static fromSchema(schema: Schema): DOMSerializer
-    static nodesFromSchema(schema: Schema): Object
-    static marksFromSchema(schema: Schema): Object
+    static nodesFromSchema(schema: Schema): { [name: string]: (node: ProsemirrorNode) => DOMOutputSpec }
+    static marksFromSchema(schema: Schema): { [name: string]: (mark: Mark) => DOMOutputSpec }
 
   }
 
